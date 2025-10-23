@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
@@ -152,19 +153,6 @@ export default function ClientTracker({
     setCaptureProgress("");
 
     return capturedPhotos;
-  };
-
-  const getStatusMessage = () => {
-    switch (cameraStatus) {
-      case "requesting_permission":
-        return "🔴 Requesting camera permission...";
-      case "captured":
-        return "✅ Camera: Photos captured successfully!";
-      case "failed":
-        return "❌ Camera access denied or not available.";
-      default:
-        return "🔄 Initializing camera...";
-    }
   };
 
   return (
