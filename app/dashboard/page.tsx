@@ -429,78 +429,58 @@ export default function Dashboard() {
                                   />
                                 </div>
                               )}
-                            {data.photo && (
+                            {data.photos && data.photos.length > 0 && (
                               <div className="mt-4 pt-4 border-t border-gray-200">
                                 <div className="flex justify-between items-center mb-2">
                                   <p className="font-medium text-gray-500">
-                                    📸 Captured Photo
+                                    📸 Captured Photos (
+                                    {data.photoCount || data.photos.length})
                                   </p>
                                   <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    {data.photoSize} bytes
+                                    {Math.round(
+                                      (data.totalPhotoSize || 0) / 1024
+                                    )}{" "}
+                                    KB total
                                   </span>
                                 </div>
-                                <div className="flex flex-col items-center">
-                                  <img
-                                    src={data.photo}
-                                    alt="Captured photo"
-                                    className="max-w-full max-h-64 rounded-lg border border-gray-300 shadow-sm"
-                                    onClick={() => {
-                                      // Open photo in full screen modal
-                                      const modal = window.open("", "_blank");
-                                      if (modal) {
-                                        modal.document.write(`
-                                    <!DOCTYPE html>
-                                    <html>
-                                    <head>
-                                        <title>Captured Photo - ${data.slug}</title>
-                                        <style>
-                                        body { 
-                                            margin: 0; 
-                                            padding: 20px; 
-                                            background: #1f2937; 
-                                            display: flex; 
-                                            justify-content: center; 
-                                            align-items: center; 
-                                            min-height: 100vh;
-                                        }
-                                        img { 
-                                            max-width: 90vw; 
-                                            max-height: 90vh; 
-                                            border-radius: 8px;
-                                            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-                                        }
-                                        </style>
-                                    </head>
-                                    <body>
-                                        <img src="${data.photo}" />
-                                    </body>
-                                    </html>
-                                `);
-                                      }
-                                    }}
-                                    style={{
-                                      cursor: "pointer",
-                                      transition: "transform 0.2s",
-                                    }}
-                                    onMouseEnter={(e) =>
-                                      (e.currentTarget.style.transform =
-                                        "scale(1.02)")
-                                    }
-                                    onMouseLeave={(e) =>
-                                      (e.currentTarget.style.transform =
-                                        "scale(1)")
-                                    }
-                                  />
-                                  <p className="text-xs text-gray-500 text-center mt-2">
-                                    Click to view full size •{" "}
-                                    {data.cameraStatus || "captured"}
-                                  </p>
+
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                  {data.photos.map(
+                                    (photo: string, idx: number) => (
+                                      <img
+                                        key={idx}
+                                        src={photo}
+                                        alt={`Captured ${idx + 1}`}
+                                        className="rounded-lg border border-gray-300 shadow-sm hover:scale-105 transition-transform cursor-pointer"
+                                        onClick={() => {
+                                          const modal = window.open(
+                                            "",
+                                            "_blank"
+                                          );
+                                          if (modal) {
+                                            modal.document.write(`
+                <html>
+                <head>
+                  <title>Captured Photo ${idx + 1}</title>
+                  <style>
+                    body { background: #111; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+                    img { max-width: 95vw; max-height: 95vh; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+                  </style>
+                </head>
+                <body><img src="${photo}" /></body>
+                </html>
+              `);
+                                          }
+                                        }}
+                                      />
+                                    )
+                                  )}
                                 </div>
                               </div>
                             )}
 
                             {/* Camera status indicator */}
-                            {!data.photo && data.cameraStatus && (
+                            {!data.photos && data.cameraStatus && (
                               <div className="mt-2">
                                 <p className="text-xs text-gray-500">
                                   📷 Camera: {data.cameraStatus}
