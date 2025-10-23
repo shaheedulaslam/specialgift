@@ -120,7 +120,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get("slug");
-    const includePhotos = searchParams.get("photos") === "true";
+    const includePhotos = searchParams.get("photos") !== "false"; // default = true
 
     const { db } = await connectToDatabase();
 
@@ -131,7 +131,6 @@ export async function GET(request) {
 
     // Projection to optionally exclude photo data (to reduce response size)
     const projection = includePhotos ? {} : { photos: 0 };
-
     const analytics = await db
       .collection("analytics")
       .find(query, { projection })
